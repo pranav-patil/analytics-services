@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "analytics_services"
+version = "0.1.0"
+description = "Analytics Services"
+authors = ["Emprovise <user@emprovise.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/pranav-patil/analytics-services"
+repository = "https://github.com/pranav-patil/analytics-services"
+keywords = ["analytics", "rest", "services", "pandas"]
+classifiers = [
+    "Environment :: Console",
+    "Framework :: Flake8",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+]
+include = [
+    "LICENSE",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+django = "^3.1.2"
+djangorestframework = "^3.12.1"
+django-filter = "^2.4.0"
+markdown = "^3.2.2"
+numpy = "^1.16.5"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.7.9"
+pytest = "^6.1.1"
+
+[tool.poetry.scripts]
+flake8-markdown = 'flake8_markdown:main'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
