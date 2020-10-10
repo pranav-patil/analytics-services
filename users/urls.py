@@ -1,10 +1,11 @@
-from django.urls import path
-from users.views import UserRegistrationAPIView, UserLoginAPIView, UserTokenAPIView
+from users.views import UserList, UserDetails, GroupList, UserSignUp
+from django.urls import path, include
 
 app_name = 'users'
 
 urlpatterns = [
-    path('users/', UserRegistrationAPIView.as_view(), name="list"),
-    path('users/login/', UserLoginAPIView.as_view(), name="login"),
-    path('tokens/<key>/', UserTokenAPIView.as_view(), name="token"),
+    path('signup/', UserSignUp.as_view()),
+    path('users/', UserList.as_view()),
+    path('users/<pk>/', UserDetails.as_view()),
+    path('groups/', GroupList.as_view())
 ]
