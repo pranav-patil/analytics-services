@@ -5,98 +5,101 @@ Analytics services use the powerful libraries in Python such as Pandas and sciki
 [Django Framework](https://www.playframework.com/documentation/2.8.x/Home) is a lightweight, stateless and highly scalable web application framework with minimal resource consumption. Play is built on top of Akka and Akka HTTP which enables to develop lightning-fast applications. Although Play is based on MVC programming model, it also offers tools to create fully-featured REST APIs as well as plugins to support important features such as authorization, integration with databases. The Play Services demonstrates the capabilities of Play framework in developing REST services with [OAuth2 Security](https://github.com/nulab/play2-oauth2-provider), [Slick Database Framework](https://www.playframework.com/documentation/2.8.x/PlaySlick), [ReactiveMongo](http://reactivemongo.org/) and external [WebServices](https://www.playframework.com/documentation/2.8.x/ScalaWS).
 
 
-### Installation and Running of MySQL Server
+### Setup PostgreSQL Server
 
-* Download latest [MySQL Installer](https://dev.mysql.com/downloads/installer/) and follow windows installation steps.
-* Alternatively, can download [Latest MySQL Community Server](https://dev.mysql.com/downloads/mysql/) or [MySQL Archive Release](https://downloads.mysql.com/archives/community/) and extract the zip file. MYSQL_HOME is the path to the unzipped MySQL **mysql** directory. Set MYSQL_HOME as an environment (system) variable.
-* Create a **my.cnf** file in MYSQL_HOME directory and add below contents. Create **data** and **temp** directories in MYSQL_HOME.
-
-        [client]
-        port=3306
-        socket=%MYSQL_HOME%\\temp\\mysql.sock
-
-        [mysqld]
-        port=3306
-
-        # set basedir to your installation path
-        basedir=%MYSQL_HOME%
-
-        # set datadir to the location of your data directory
-        datadir=%MYSQL_HOME%\\data
-
-        socket=%MYSQL_HOME%\\temp\\mysql.sock
-        key_buffer_size=16M
-        max_allowed_packet=128M
-
-        [mysqldump]
-        quick
-
-* Initialize MySQL using the below initialize option in mysqld command. Then start the mysqld server.
-
-        $ cd /d %MYSQL_HOME%
-        $ bin\mysqld --console --initialize
-        $ bin\mysqld --console
-
-* To run MySQL on Windows as a service execute the commands in [Starting MySQL as a Windows Service](https://dev.mysql.com/doc/refman/8.0/en/windows-start-service.html).
-* To update root password follow the below commands. The current root password can be found from the output of the previous **mysqld --console --initialize** command, from the line **[Server] A temporary password is generated for root@localhost: xxxxxxxx**.
-
-        $ .\bin\mysql -u root -p xxxxxxxx
-
-        mysql> FLUSH PRIVILEGES;
-        mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
-
-* Create a new database named **playDB**. Then create a new user named **appuser** and grant the permissions to playDB using below **mysql** commands. The user and password are added in **conf/application.conf** configuration file as **slick.dbs.default.db.user** and **slick.dbs.default.db.password**. The FLUSH PRIVILEGES allows to save the changes and reload updated privileges.
+* Download latest [Windows PostgreSQL Installer](https://www.postgresql.org/download/windows/) and follow windows installation steps.
+* Alternatively, can download [Windows PostgreSQL Binary Archive](https://www.enterprisedb.com/download-postgresql-binaries) and extract the zip file. POSTGRE_SQL_HOME is the path to the unzipped PostgreSQL **pgsql** directory.
+* Create `data` directory in `POSTGRE_SQL_HOME/pgsql` and initialize the postgres database using `pg_ctl init` command from [pg_ctl](https://www.postgresql.org/docs/9.5/static/app-pg-ctl.html) utility.
 
 
-        $ bin\mysqld --console
+        $ pg_ctl -D "POSTGRE_SQL_HOME/pgsql/data" init
 
-        mysql> CREATE DATABASE playDB;
-        mysql> CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'password';
-        mysql> GRANT ALL PRIVILEGES ON playDB.* TO 'appuser'@'localhost';
-        mysql> FLUSH PRIVILEGES;
-
-* MySQL runs on default port 3306 which can be changed using **my.cnf** configuration file.
+* Start the Posgres server in background with the initialized data directory. PostGreSQL runs by default on port 5432.
 
 
-### Installation and Running of MongoDB
+        $ pg_ctl -D "POSTGRE_SQL_HOME/pgsql/data" -l logfile start
 
-* Download latest [Windows MongoDB release](https://www.mongodb.org/dl/win32/x86_64-2008plus-ssl) and extract the zip file.
-* Create directories **data** and **logs** in MONGODB_HOME directory, were MONGODB_HOME is the path to the unzipped mongodb directory.
-* Create file **mongo.log** in MONGODB_HOME/logs directory.
-* Create **mongod.cfg** file using [MongoDB configuration options](https://docs.mongodb.com/v3.2/reference/configuration-options/) in MONGODB_HOME/bin directory or copy below mongo configuration in the **mongod.cfg** configuration file.
+* Create default `postgres` as superuser and set the password as `secret`.
 
-        systemLog:
-          destination: file
-          path: MONGODB_HOME/logs
-          logAppend: true
-        storage:
-          dbPath: MONGODB_HOME/data
-          journal:
-             enabled: true
-        net:
-          bindIp: 127.0.0.1
-          port: 27017
 
-* Go to MONGODB_HOME\bin directory and execute the command "mongod --config mongod.cfg" to run mongodb.
-* MongoDB runs on default port 27017.
+        $ createuser --password --superuser postgres
 
+* Alternatively, the password of `postgres` user can be changed as below after logging into psql.
+
+
+        $ psql -U postgres
+        postgres=#  \password
+        postgres=#  ALTER USER postgres WITH PASSWORD 'new_password';
+
+* Register Posgres server with data directory path as a windows service.
+
+
+        $ pg_ctl register -N postgres -D "POSTGRE_SQL_HOME/pgsql/data"
+        
+* Create a new user named **appuser** and new database named **appdb** using below **psql** commands.
+
+
+        $ psql -U postgres
+        postgres=#  CREATE USER appuser WITH PASSWORD 'secret123';
+
+* Create a new database `appdb` and grant all privileges for the database to user `appuser`. user named **appuser** and new database named **appdb** using below **psql** commands.
+
+
+        postgres=#  CREATE DATABASE appdb;
+        postgres=#  GRANT ALL PRIVILEGES ON DATABASE appdb TO appuser;
+        postgres=#  \c appdb;
+
+* Alternatively, database can be created using the [createdb](https://www.postgresql.org/docs/9.1/app-createdb.html) utility as below. Then login into psql with appuser and appdb database.
+
+
+        $ createdb --owner appuser appdb
+        $ psql -h localhost -U appuser -d appdb
+        postgres=#  \q
+
+
+* To remove the user `appuser` and database `appuser`, login into psql using `postgres` superuser and execute below drop commands.
+
+
+        $ psql -U postgres
+        postgres=#  DROP DATABASE appdb;
+        postgres=#  DROP USER appuser;
+
+**NOTES** 
+- While running `pg_ctl.exe register` command, please ensure that the windows command prompt is running as administrator, to avoid `pg_ctl: could not open service manager` error.
+- If the data directory is not initialized pg_ctl returns the error `pg_ctl: directory "C:/Installs/pgsql/data" is not a database cluster directory`.
+- The `postgres` user is not created by default and hence should be created using [createuser](https://www.postgresql.org/docs/12/app-createuser.html) utility to avoid the `FATAL:  role "postgres" does not exist` error.
+ 
 
 ### Running Django Services
 
-Below are the instructions to download/setup SBT and to run Play Services using command line. Alternatively, [Scala plugin](https://plugins.jetbrains.com/plugin/1347-scala) can be [setup on IntelliJ](https://docs.scala-lang.org/getting-started/intellij-track/getting-started-with-scala-in-intellij.html), running the Play Services using IntelliJ.
+Below are the instructions to download/setup Python3, PIP, Poetry and to run Django Services using command line.
 
 * Download the latest [Python3 Release](https://www.python.org/downloads/) and install it. It is recommended to use installer rather than standalone version for windows machine.
-* Add `SBT_HOME\bin` directory to System Path.
-* Run the below commands in project directory to build and run the Play Services.
+* Install PIP using the below command.
+
+
+        $ python get-pip.py
+
+* Install Poetry using PIP as below.
 
 
         $ pip install poetry
+
+* Install all the python packages by reading the `pyproject.toml` file in the project directory. 
+  Subsequently run all the commands with `poetry run` prefix command, in order to run them in poetry's virtual environment. 
+  Run Django's `makemigrations`, `migrate` and `runserver` commands as below to setup and run django rest services.
+
+
         $ poetry install
-        $ poetry run django-admin startproject django-services
-        $ poetry run django-admin startapp api
         $ poetry run python manage.py makemigrations
         $ poetry run python manage.py migrate
         $ poetry run python manage.py runserver
+
+* Alternatively, if want to start a fresh project `analytics-services` and create an app `api` for example, can be achieved using below commands. 
+
+
+        $ poetry run django-admin startproject analytics-services
+        $ poetry run django-admin startapp api
 
 
 ### Accessing Django Admin Page
