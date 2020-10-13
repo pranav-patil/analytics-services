@@ -22,7 +22,7 @@ class BlogPostDetailAPIView(RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated, UserIsOwnerBlogPost)
 
 
-# class BlogPostRudView(generics.RetrieveUpdateDestroyAPIView):
+# class BlogPostRudView(RetrieveUpdateDestroyAPIView):
 #     lookup_field = 'pk'  # slug, id
 #     queryset = BlogPost.objects.all()
 #

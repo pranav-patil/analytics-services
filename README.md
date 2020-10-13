@@ -70,6 +70,68 @@ Analytics services use the powerful libraries in Python such as Pandas and sciki
 - The `postgres` user is not created by default and hence should be created using [createuser](https://www.postgresql.org/docs/12/app-createuser.html) utility to avoid the `FATAL:  role "postgres" does not exist` error.
  
 
+### Running Redis Server
+
+* Download the latest stable [windows release](https://github.com/MicrosoftArchive/redis/releases) or follow [installation instructions](https://redis.io/topics/quickstart) for linux platforms.
+* Start the redis server using below command. Redis by default runs on port 6379.
+
+
+        $ redis-server
+
+* The [Redis CLI](https://redis.io/topics/rediscli) is used to communicate with redis instance. Redis CLI connects to the server at 127.0.0.1 and port 6379 by default.
+  It also allows to connect to different host using -h option and different port using the -p option. The -n <dbnum> option operates 
+  the command on a database number other than the default number zero. 
+
+
+        $ redis-cli -h redis.server.com -p 6390 ping
+        $ redis-cli -n 1
+  
+* Redis enables print all the key names in the keyspace using keys command, or scan & filter the keys for specific patterns.
+
+
+        $ redis-cli keys *
+        $ redis-cli --scan --pattern '*-11*'
+
+* To get value of the key, first use the [type](https://redis.io/commands/type) command to determine the key's value type. Then use the corresponding commands 
+  depending on the key type to fetch the value.
+
+
+        $ redis-cli type <key-name>
+  
+  - To get "string" value: `get <key>`
+  - To get "hash" value: `hgetall <key>`
+  - To get "list" value: `lrange <key> 0 -1`
+  - To get "set" value: `smembers <key>`
+  - To get "zset" value: `zrange <key> 0 -1 withscores`
+
+* In order to create a new key or update (overwrite) the value of existing key the [set](https://redis.io/commands/set) command is used. 
+  The `ex` option allows to set the expiration time for the key. The [del](https://redis.io/commands/del) command is used to delete the key.
+
+
+        $ redis-cli set mykey "Hello"
+        $ redis-cli set anotherkey "will expire in a minute" ex 60
+        $ redis-cli del mykey anotherkey
+
+* The [FlushDB](http://redis.io/commands/flushdb) command is used to delete all keys from the connection's current database.
+  The [FlushAll](http://redis.io/commands/flushall) command deletes all keys from all databases.
+
+
+        $ redis-cli flushdb
+        $ redis-cli flushall
+        $ redis-cli flushall async
+        
+* The redis stats option provides the real time information of the redis instances.
+
+
+        $ redis-cli --stats
+        
+*  The redis monitoring mode prints all the commands received by a Redis instance. The basic latency checking tool is the --latency option
+   which measures the time taken to receive a reply for a ping from the redis instance.
+
+
+        $ redis-cli monitor
+        $ redis-cli --latency
+        
 ### Running Django Services
 
 Below are the instructions to download/setup Python3, PIP, Poetry and to run Django Services using command line.
@@ -161,7 +223,7 @@ customizable views we can use to CRUD application instances.
 
    - Use the `access_token` from the above response to pass as bearer authorization for the /users, /users/id and /groups services.
 
-    $ http -v localhost:8000/users/ Authorization:"Bearer <access_token>"
+    $ http -v localhost:8000/users/ Authorization:"Bearer <access_token>" Accept:application/json
     $ http -v localhost:8000/groups/ Authorization:"Bearer <access_token>"
     $ http -v localhost:8000/users/1/ Authorization:"Bearer <access_token>"
     
