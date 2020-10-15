@@ -1,9 +1,6 @@
 # Analytics Services
 
-Analytics services use the powerful libraries in Python such as Pandas and scikit-learn to analyze the data. The services are developed using the Django Rest Framework is widely used Rest API platform in Python. It also provides in-built authentication, serialization, ORM and web browsable API view. The project demonstrates data analysis and machine learning capabilities.
-
-[Django Framework](https://www.playframework.com/documentation/2.8.x/Home) is a lightweight, stateless and highly scalable web application framework with minimal resource consumption. Play is built on top of Akka and Akka HTTP which enables to develop lightning-fast applications. Although Play is based on MVC programming model, it also offers tools to create fully-featured REST APIs as well as plugins to support important features such as authorization, integration with databases. The Play Services demonstrates the capabilities of Play framework in developing REST services with [OAuth2 Security](https://github.com/nulab/play2-oauth2-provider), [Slick Database Framework](https://www.playframework.com/documentation/2.8.x/PlaySlick), [ReactiveMongo](http://reactivemongo.org/) and external [WebServices](https://www.playframework.com/documentation/2.8.x/ScalaWS).
-
+Analytics services provides analytical REST services and plotted Graphs for provided dataset. It uses powerful Python libraries such as [Pandas](https://pandas.pydata.org/) and [scikit-learn](https://scikit-learn.org/) to analyze the data. The services are developed using the [Django Rest Framework](https://www.django-rest-framework.org/) is widely used Rest API platform in Python. It also provides in-built authentication, serialization, ORM and web browsable API view. The project demonstrates data analysis and machine learning capabilities.
 
 ### Setup PostgreSQL Server
 
@@ -199,7 +196,7 @@ customizable views we can use to CRUD application instances.
 
 
 
-### Testing OAuth2 using HttpPie
+### Testing OAuth2 using HTTPie
 
    - Install [HTTPie](https://httpie.org/), command-line HTTP client for the API with JSON support.
 
@@ -224,10 +221,37 @@ customizable views we can use to CRUD application instances.
    - Use the `access_token` from the above response to pass as bearer authorization for the /users, /users/id and /groups services.
 
     $ http -v localhost:8000/users/ Authorization:"Bearer <access_token>" Accept:application/json
-    $ http -v localhost:8000/groups/ Authorization:"Bearer <access_token>"
-    $ http -v localhost:8000/users/1/ Authorization:"Bearer <access_token>"
-    
-    $ http -v localhost:8000/api/postings/ Authorization:"Bearer <access_token>"
-    $ http -v localhost:8000/api/postings/1/ Authorization:"Bearer <access_token>"
- 
+
+
+### List of Analytics Services
+
+<div>
+<table width="100%">
+    <thead>
+        <tr>
+            <th>Resource</th>
+            <th>Services</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan=3>Users</td>
+            <td>/users</td>
+        </tr>
+        <tr>
+            <td>/users/[user-id]</td>
+        </tr>
+        <tr>
+            <td>/groups</td>
+        </tr>
+        <tr>
+            <td rowspan=2>BlogPost</td>
+            <td>/api/postings/</td>
+        </tr>
+        <tr>
+            <td>/api/postings/[blog-post-id]/</td>
+        </tr>
+    </tbody>
+</table>
+</div>
  
