@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from records.models import BlogPost
 from .permissions import UserIsOwnerBlogPost
 from .serializers import BlogPostSerializer
+from rest_pandas import PandasSimpleView, PandasJSONRenderer
+import pandas as pd
 
 
 class BlogPostListCreateAPIView(ListCreateAPIView):
@@ -32,3 +34,14 @@ class BlogPostDetailAPIView(RetrieveUpdateDestroyAPIView):
 #     def get_object(self):
 #         pk = self.kwargs.get("pk")
 #         return BlogPost.objects.get(pk=pk)
+
+
+class VideoGameSalesView(PandasSimpleView):
+    renderer_classes = [PandasJSONRenderer]
+
+    def get_data(self, request, *args, **kwargs):
+        return pd.read_csv('data/vgsales.csv')
+
+    def transform_dataframe(self, dataframe):
+        dataframe.some_pivot_function(in_place=True)
+        return dataframe
