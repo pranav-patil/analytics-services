@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from records.models import BlogPost
+from .models import VideoGameSales
+
 
 class BlogPostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,3 +13,9 @@ class BlogPostSerializer(serializers.ModelSerializer):
             'content',
             'timestamp',
         ]
+
+
+class VideoGameSalesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VideoGameSales
+        fields = '__all__'

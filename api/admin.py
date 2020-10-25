@@ -1,9 +1,9 @@
 from django.contrib import admin
-from records.models import BlogPost
 from import_export import resources
-from records.models import BlogPost
-from .models import VideoGameSales
 from import_export.admin import ImportExportModelAdmin
+from records.models import BlogPost
+
+from .models import VideoGameSales
 
 
 class VideoGameSalesResource(resources.ModelResource):

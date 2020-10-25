@@ -222,7 +222,35 @@ customizable views we can use to CRUD application instances.
 
     $ http -v localhost:8000/users/ Authorization:"Bearer <access_token>" Accept:application/json
 
+   - We can also use Google Chrome to browse the HTTP GET APIs. In order to do that, we need to install the [ModHeader Google Chrome Extension](https://chrome.google.com/webstore/detail/modheader/idgpnmonknjnojddfkpgkljpfnnfcklj?hl=en) 
+     into Google chrome. Once installed click on the `ModHeader` Extension, and under Request Headers, add `Authorization` with the 
+     value as `Bearer <access_token>` were `access_token` is taken from step 2.     
+     
+   ![ModHeader Extension](images/modheader.png)
 
+
+### Import Data into Database
+
+Django import export package is used to import data from csv, json, excel and other formats into the database.
+In order to import the data file into the database, the corresponding django database model and the resource model 
+should be added into the application. Currently only `/data/vgsales.csv` can be imported into the database using the
+`VideoGameSales` model. To begin the import of data from csv file we follow below process.
+
+1. Login to the Admin page at [http://localhost:8000/admin](http://localhost:8000/admin) and navigate to `Video Game Sales`
+   under `API` application. 
+2. Click on `import` button which gives below form. Select the `/data/vgsales.csv` file and select option as `csv`.  
+
+   ![Import CSV Form](images/import_csv_form.png)
+
+3. If the file data is valid with no errors, we see below page. Click `Confirm Import` to import all the data in `api_videogamesales` table.  
+
+   ![Import CSV Form](images/import_csv_confirm.png)
+
+4. Once all the data is imported in `api_videogamesales` table successfully, we see the confirmation page as below. Ignore `Select the Video Game Sales to change` suggestion.  
+
+   ![Import CSV Form](images/import_csv_finished.png)
+
+ 
 ### List of Analytics Services
 
 <div>
@@ -231,27 +259,149 @@ customizable views we can use to CRUD application instances.
         <tr>
             <th>Resource</th>
             <th>Services</th>
+            <th>Service Description</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td rowspan=3>Users</td>
             <td>/users</td>
+            <td>Returns all the users</td>
         </tr>
         <tr>
             <td>/users/[user-id]</td>
+            <td>Returns the details of the requested user id</td>
         </tr>
         <tr>
             <td>/groups</td>
+            <td>Returns all the list of groups</td>
         </tr>
         <tr>
             <td rowspan=2>BlogPost</td>
             <td>/api/postings/</td>
+            <td>Returns all the blog postings present in blogpost</td>
         </tr>
         <tr>
             <td>/api/postings/[blog-post-id]/</td>
+            <td>Returns details of the requested blogpost by blogpost id</td>
+        </tr>
+        <tr>
+            <td rowspan=1>SuicideStatistics</td>
+            <td>/api/suicide/statistics/</td>
+            <td>Returns all the WHO suicide statistics records from data/who_suicide_statistics.csv</td>
+        </tr>
+        <tr>
+            <td rowspan=2>VideoGameSales</td>
+            <td>/api/videogames/sales/</td>
+            <td>Returns video game sales records which can be analyzed using dataframe</td>
+        </tr>
+        <tr>
+            <td>/api/videogames/sales/chart/</td>
+            <td>Returns SVG chart based on passed chart (type) parameter</td>
         </tr>
     </tbody>
 </table>
 </div>
  
+##### Video Game Sales - Analytics Services
+
+The Video Game Sales API service supports below query parameters for data manipulation using Pandas.
+All the below query parameters can be applied together or separately as shown in the below examples.
+
+- Filter: It finds all the records that match the text in the `filter_value` parameter for the data column specified by `filter_column` parameter. 
+- Group: It groups all the records by data column `group` and adds up all the values for the data columns `usa_sales`, `europe_sales`,`japan_sales`, `other_sales` and `global_sales`.
+- Sort: It sorts the specified data column in the `sort` parameter.
+
+[http://localhost:8000/api/videogames/sales/?filter_column=name&filter_value=Call%20of%20Duty&sort=year]()
+
+[http://localhost:8000/api/videogames/sales/?group=genre&filter_column=name&filter_value=Call%20of%20Duty&sort=global_sales]()
+
+### Type of Charts for Analytics
+
+Analytics services provides various types of charts for all the video game sales analytics services. All the below supported charts 
+can only be accessed using a web browser and requires bearer authorization to be passed in the headers. The 
+`ModHeader Chrome Extension` mentioned before enables to pass the bearer authorization header for all the requests within the 
+Google Chrome browser, thus enabling to view all the below charts. Each chart type requires some mandatory parameters to be 
+passed in order for the chart to be rendered using the Video Game Sales dataframe.
+
+Charts also support various custom styling by passing the `style` parameter with below [standard style values](https://matplotlib.org/3.3.2/tutorials/introductory/customizing.html).
+
+[`Solarize_Light2`, `_classic_test_patch`, `bmh`, `classic`, `dark_background`, `fast`, `fivethirtyeight`, `ggplot`, `grayscale`, `seaborn`, `seaborn-bright`, `seaborn-colorblind`, `seaborn-dark`, `seaborn-dark-palette`, `seaborn-darkgrid`, `seaborn-deep`, `seaborn-muted`, `seaborn-notebook`, `seaborn-paper`, `seaborn-pastel`, `seaborn-poster`, `seaborn-talk`, `seaborn-ticks`, `seaborn-white`, `seaborn-whitegrid`, `tableau-colorblind10`]
+
+#### Scatter Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=scatter&x=global_sales&y=europe_sales]()
+
+   ![Scatter Chart](images/scatter_chart.png)
+
+
+#### Box Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=box&x=global_sales&y=europe_sales]()
+
+   ![Box Chart](images/box_chart.png)
+
+
+#### Swarm Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=swarm&x=global_sales&y=europe_sales]()
+
+   ![Swarm Chart](images/swarm_chart.png)
+
+
+#### Joint Distribution Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=joint&x=global_sales&y=europe_sales]()
+
+   ![Joint Distribution Chart](images/joint_chart.png)
+
+
+#### Histogram
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=histogram&x=global_sales&y=europe_sales]()
+
+   ![Histogram](images/histogram.png)
+
+
+#### Bar Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=bar&x=global_sales&y=europe_sales&hue=usa_sales]()
+
+   ![Bar Chart](images/bar_chart.png)
+
+
+#### Pie Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=pie&y=europe_sales&style=Solarize_Light2]()
+
+   ![Pie Chart](images/pie_chart.png)
+
+
+#### Line Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=line&x=japan_sales&y=europe_sales]()
+
+   ![Line Chart](images/line_chart.png)
+
+
+#### Category Chart
+
+[http://localhost:8000/api/videogames/sales/chart/?group=genre&chart=category&x=global_sales&y=europe_sales]()
+
+   ![Category Chart](images/category_chart.png)
+
+
+### Recreating deleted table in Django
+
+- Delete the Django migrations directory within the app.
+- Execute the below query to delete the record from django_migrations table.
+
+
+    DELETE FROM django_migrations WHERE app = 'app_name';
+    
+- Then execute django migration commands as below for the app. 
+
+
+    $ python manage.py makemigrations app_name
+    $ python manage.py migrate
+

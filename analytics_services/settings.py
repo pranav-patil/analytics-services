@@ -170,3 +170,6 @@ SESSION_CACHE_ALIAS = "default"
 # DEFAULT CACHE TTL
 CACHE_TTL = 60 * 15
 
+# Enables resource import to use database transactions, i.e. ignore import on failure.
+IMPORT_EXPORT_USE_TRANSACTIONS = True
+
