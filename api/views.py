@@ -6,17 +6,19 @@ import pandas as pd
 from django.http import HttpResponse
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from rest_pandas import PandasSimpleView, PandasView, PandasJSONRenderer, PandasSVGRenderer
 
 from records.models import BlogPost
 from .models import VideoGameSales
 from .permissions import UserIsOwnerBlogPost
 from .serializers import BlogPostSerializer
-from .serializers import VideoGameSalesSerializer
+from .serializers import VideoGameSalesSerializer, SuicideStatisticsSerializer
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+from rest_framework.response import Response
 
 
 class BlogPostListCreateAPIView(ListCreateAPIView):
@@ -47,11 +49,39 @@ class BlogPostDetailAPIView(RetrieveUpdateDestroyAPIView):
 #         return BlogPost.objects.get(pk=pk)
 
 
-class SuicideStatisticsView(PandasSimpleView):
-    renderer_classes = [PandasJSONRenderer]
+def transform_filter_by(dataframe, filter_col, filter_val):
+    valid_filter_cols = dataframe.columns.values.tolist()
 
-    def get_data(self, request, *args, **kwargs):
-        return pd.read_csv('data/who_suicide_statistics.csv')
+    if filter_col and filter_val:
+        if filter_col in valid_filter_cols:
+            dataframe = dataframe.loc[dataframe[filter_col].str.contains(filter_val, flags=re.I, regex=True)]
+        else:
+            raise ValueError('Valid values for filter by columns are: {}'.format(valid_filter_cols))
+
+    return dataframe
+
+
+def transform_group_by(dataframe, group_by, valid_group_cols, sum_columns):
+
+    if group_by:
+        if group_by in valid_group_cols:
+            dataframe = dataframe.groupby([group_by])[sum_columns].apply(lambda x: x.astype(float).sum())
+        else:
+            raise ValueError('Valid values for group by argument are: {}'.format(valid_group_cols))
+
+    return dataframe
+
+
+def transform_sort_by(dataframe, sort_column):
+    valid_sort_cols = dataframe.columns.values.tolist()
+
+    if sort_column:
+        if sort_column in valid_sort_cols:
+            dataframe = dataframe.sort_values(sort_column)
+        else:
+            raise ValueError('Valid values for sort columns are: {}'.format(valid_sort_cols))
+
+    return dataframe
 
 
 def set_style(style):
@@ -65,48 +95,162 @@ def set_style(style):
         plt.style.use('default')
 
 
-def transform_filter_by(dataframe, filter_col, filter_val):
+class PandasChartView(APIView):
 
-    valid_filter_cols = dataframe.columns.values.tolist()
+    def get_chart(self, dataframe):
+        chart_type = self.request.query_params.get('chart')
+        valid_chart_types = ['scatter', 'box', 'swarm', 'joint', 'histogram', 'bar', 'pie', 'line', 'category']
+        if chart_type not in valid_chart_types:
+            raise ValueError(
+                f'In valid value of parameter chart (type) = {chart_type}, valid values are: {valid_chart_types}')
 
-    if filter_col and filter_val:
-        if filter_col in valid_filter_cols:
-            dataframe = dataframe.loc[dataframe[filter_col].str.contains(filter_val, flags=re.I, regex=True)]
+        sns.set_context("paper", font_scale=1.0, rc={"lines.linewidth": 2.5})
+        set_style(self.request.query_params.get('style'))
+        if chart_type == 'scatter':
+
+            fig = plt.figure(figsize=(10, 7))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            sns.lmplot(x=columns['x'], y=columns['y'], data=dataframe, fit_reg=False)
+            plt.ylim(0, None)
+            plt.xlim(0, None)
+
+        elif chart_type == 'box':
+
+            fig = plt.figure(figsize=(14, 5))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            sns.boxplot(x=columns['x'], y=columns['y'], data=dataframe)
+            plt.xticks(rotation=-45)
+
+        elif chart_type == 'swarm':
+
+            fig = plt.figure(figsize=(10, 6))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            sns.swarmplot(x=columns['x'], y=columns['y'], data=dataframe)
+
+            # adjust the y-axis
+            plt.ylim(0, 260)
+            # place legend to the right
+            plt.legend(bbox_to_anchor=(1, 1), loc=2)
+            plt.xticks(rotation=-45)
+
+        elif chart_type == 'category':
+
+            fig = plt.figure(figsize=(10, 6))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            sns.catplot(x=columns['x'], y=columns['y'], data=dataframe)
+            plt.xticks(rotation=-45)
+
+        elif chart_type == 'joint':
+
+            fig = plt.figure(figsize=(10, 6))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            sns.jointplot(x=columns['x'], y=columns['y'], data=dataframe)
+
+        elif chart_type == 'histogram':
+
+            fig = plt.figure(figsize=(14, 5))
+            columns = self.get_columns(dataframe, 'x')
+
+            # ,hist=False
+            sns.distplot(dataframe[columns['x']])
+
+        elif chart_type == 'bar':
+
+            fig = plt.figure(figsize=(10, 7))
+
+            if self.request.query_params.get('hue'):
+                columns = self.get_columns(dataframe, 'x', 'y', 'hue')
+                sns.barplot(x=columns['x'], y=columns['y'], hue=columns['hue'], data=dataframe)
+            else:
+                columns = self.get_columns(dataframe, 'x', 'y')
+                sns.barplot(x=columns['x'], y=columns['y'], data=dataframe)
+
+            plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+            plt.xticks(rotation=45)
+
+        elif chart_type == 'pie':
+
+            fig = plt.figure(figsize=(8, 8))
+            columns = self.get_columns(dataframe, 'y')
+            dataframe.plot.pie(y=columns['y'], autopct='%1.1f%%', startangle=90, shadow=True, legend=False)
+            plt.tight_layout()
+            plt.axis('equal')
+            # plt.legend(loc=5)
+
+        elif chart_type == 'line':
+
+            fig = plt.figure(figsize=(10, 7))
+            columns = self.get_columns(dataframe, 'x', 'y')
+            dataframe.plot(x=columns['x'], y=columns['y'], kind='line')
+
         else:
-            raise ValueError('Valid values for filter by columns are: {}'.format(valid_filter_cols))
+            raise NotImplementedError(f'Chart type {chart_type} currently not supported.')
 
-    return dataframe
+        # save the figure as a bytes string in the svg format.
+        bytes_io = BytesIO()
+        plt.savefig(bytes_io, format="svg")
+        response = HttpResponse(bytes_io.getvalue(), content_type='image/svg+xml')
+        fig.clf()
+        plt.close(fig)
+        plt.close('all')
+        return response
+
+    def get_columns(self, dataframe, *names):
+        columns = dict()
+
+        if len(names) > 0:
+            column_names = dataframe.columns.values.tolist()
+
+            for name in names:
+                column = self.request.query_params.get(name)
+                if column not in column_names:
+                    raise ValueError(f'In valid value of parameter {name} = {column}, valid values are: {column_names}')
+
+                columns[name] = column
+
+        return columns
 
 
-def transform_group_by(dataframe, group_by):
+class SuicideStatisticsView(PandasChartView, PandasSimpleView):
+    renderer_classes = [PandasJSONRenderer, PandasSVGRenderer]
+    serializer_class = SuicideStatisticsSerializer
 
-    valid_group_cols = ['platform', 'year', 'genre', 'publisher']
+    def transform_dataframe(self, dataframe):
+        filter_col = self.request.query_params.get('filter_column')
+        filter_val = self.request.query_params.get('filter_value')
+        dataframe = transform_filter_by(dataframe, filter_col, filter_val)
 
-    if group_by:
-        if group_by in valid_group_cols:
-            dataframe = dataframe.groupby([group_by])['usa_sales', 'europe_sales',
-                                                      'japan_sales', 'other_sales',
-                                                      'global_sales'].apply(lambda x: x.astype(float).sum())
+        group_by = self.request.query_params.get('group')
+        valid_group_cols = ['country', 'year', 'sex', 'age']
+        sum_columns = ['suicides_no', 'population']
+        dataframe = transform_group_by(dataframe, group_by, valid_group_cols, sum_columns)
+
+        sort_column = self.request.query_params.get('sort')
+        dataframe = transform_sort_by(dataframe, sort_column)
+
+        return dataframe
+
+    def get_data(self, request, *args, **kwargs):
+        return pd.read_csv('data/who_suicide_statistics.csv', header=0)
+
+    def get(self, request, *args, **kwargs):
+        is_chart = kwargs.get('chart', False)
+
+        if is_chart:
+            self.renderer_classes = [PandasSVGRenderer]
+            dataframe = self.get_data(request, *args, **kwargs)
+            dataframe = self.transform_dataframe(dataframe)
+            response = self.get_chart(dataframe)
+            return self.update_pandas_headers(response)
         else:
-            raise ValueError('Valid values for group by argument are: {}'.format(valid_group_cols))
-
-    return dataframe
-
-
-def transform_sort_by(dataframe, sort_column):
-
-    valid_sort_cols = dataframe.columns.values.tolist()
-
-    if sort_column:
-        if sort_column in valid_sort_cols:
-            dataframe = dataframe.sort_values(sort_column)
-        else:
-            raise ValueError('Valid values for sort columns are: {}'.format(valid_sort_cols))
-
-    return dataframe
+            self.renderer_classes = [PandasJSONRenderer]
+            dataframe = self.get_data(request, *args, **kwargs)
+            dataframe = self.transform_dataframe(dataframe)
+            response = Response(dataframe)
+            return super().update_pandas_headers(response)
 
 
-class VideoGameSalesView(PandasView):
+class VideoGameSalesView(PandasChartView, PandasView):
     renderer_classes = [PandasJSONRenderer, PandasSVGRenderer]
     queryset = VideoGameSales.objects.all()
     serializer_class = VideoGameSalesSerializer
@@ -120,7 +264,9 @@ class VideoGameSalesView(PandasView):
         dataframe = transform_filter_by(dataframe, filter_col, filter_val)
 
         group_by = self.request.query_params.get('group')
-        dataframe = transform_group_by(dataframe, group_by)
+        valid_group_cols = ['platform', 'year', 'genre', 'publisher']
+        sum_columns = ['usa_sales', 'europe_sales', 'japan_sales', 'other_sales', 'global_sales']
+        dataframe = transform_group_by(dataframe, group_by, valid_group_cols, sum_columns)
 
         sort_column = self.request.query_params.get('sort')
         dataframe = transform_sort_by(dataframe, sort_column)
@@ -131,134 +277,11 @@ class VideoGameSalesView(PandasView):
 
         is_chart = kwargs.get('chart', False)
 
-        chart_type = self.request.query_params.get('chart')
-        valid_chart_types = ['scatter', 'box', 'swarm', 'joint', 'histogram', 'bar', 'pie', 'line', 'category']
-
         if is_chart:
-
-            if chart_type not in valid_chart_types:
-                raise ValueError(
-                    f'In valid value of parameter chart (type) = {chart_type}, valid values are: {valid_chart_types}')
-
-            response = super().list(request, *args, **kwargs)
-            dataframe = response.data
-
-            sns.set_context("paper", font_scale=1.0, rc={"lines.linewidth": 2.5})
-            set_style(self.request.query_params.get('style'))
-
-            if chart_type == 'scatter':
-
-                fig = plt.figure(figsize=(10, 7))
-                x_column, y_column = self.get_columns(dataframe)
-                sns.lmplot(x=x_column, y=y_column, data=dataframe, fit_reg=False)
-                plt.ylim(0, None)
-                plt.xlim(0, None)
-
-            elif chart_type == 'box':
-
-                fig = plt.figure(figsize=(14, 5))
-                x_column, y_column = self.get_columns(dataframe)
-                sns.boxplot(x=x_column, y=y_column, data=dataframe)
-                plt.xticks(rotation=-45)
-
-            elif chart_type == 'swarm':
-
-                fig = plt.figure(figsize=(10, 6))
-                x_column, y_column = self.get_columns(dataframe)
-                sns.swarmplot(x=x_column, y=y_column, data=dataframe)
-
-                # adjust the y-axis
-                plt.ylim(0, 260)
-                # place legend to the right
-                plt.legend(bbox_to_anchor=(1, 1), loc=2)
-                plt.xticks(rotation=-45)
-
-            elif chart_type == 'category':
-
-                fig = plt.figure(figsize=(10, 6))
-                x_column, y_column = self.get_columns(dataframe)
-                sns.catplot(x=x_column, y=y_column, data=dataframe)
-                plt.xticks(rotation=-45)
-
-            elif chart_type == 'joint':
-
-                fig = plt.figure(figsize=(10, 6))
-                x_column, y_column = self.get_columns(dataframe)
-                sns.jointplot(x=x_column, y=y_column, data=dataframe)
-
-            elif chart_type == 'histogram':
-
-                fig = plt.figure(figsize=(14, 5))
-                x_column = self.get_column(dataframe, 'x')
-
-                # ,hist=False
-                sns.distplot(dataframe[x_column])
-
-            elif chart_type == 'bar':
-
-                fig = plt.figure(figsize=(10, 7))
-                x_column, y_column = self.get_columns(dataframe)
-
-                if self.request.query_params.get('hue'):
-                    hue_column = self.get_column(dataframe, 'hue')
-                    sns.barplot(x=x_column, y=y_column, hue=hue_column, data=dataframe)
-                else:
-                    sns.barplot(x=x_column, y=y_column, data=dataframe)
-
-                plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-                plt.xticks(rotation=45)
-
-            elif chart_type == 'pie':
-
-                fig = plt.figure(figsize=(8, 8))
-                y_column = self.get_column(dataframe, 'y')
-                dataframe.plot.pie(y=y_column, autopct='%1.1f%%', startangle=90, shadow=True, legend=False)
-                plt.tight_layout()
-                plt.axis('equal')
-                # plt.legend(loc=5)
-
-            elif chart_type == 'line':
-
-                fig = plt.figure(figsize=(10, 7))
-                x_column, y_column = self.get_columns(dataframe)
-                dataframe.plot(x=x_column, y=y_column, kind='line')
-
-            else:
-                raise NotImplementedError(f'Chart type {chart_type} currently not supported.')
-
-            # save the figure as a bytes string in the svg format.
-            bytes_io = BytesIO()
-            plt.savefig(bytes_io, format="svg")
             self.renderer_classes = [PandasSVGRenderer]
-            response = HttpResponse(bytes_io.getvalue(), content_type='image/svg+xml')
-            fig.clf()
-            plt.close(fig)
-            plt.close('all')
+            response = super().list(request, *args, **kwargs)
+            response = self.get_chart(response.data)
             return self.update_pandas_headers(response)
         else:
             self.renderer_classes = [PandasJSONRenderer]
             return super().list(request, *args, **kwargs)
-
-    def get_column(self, dataframe, name):
-
-        column = self.request.query_params.get(name)
-        column_names = dataframe.columns.values.tolist()
-
-        if column not in column_names:
-            raise ValueError(f'In valid value of parameter {name} = {column}, valid values are: {column_names}')
-
-        return column
-
-    def get_columns(self, dataframe):
-
-        x_column = self.request.query_params.get('x')
-        y_column = self.request.query_params.get('y')
-        column_names = dataframe.columns.values.tolist()
-
-        if x_column not in column_names:
-            raise ValueError(f'In valid value of parameter x = {x_column}, valid values are: {column_names}')
-        if y_column not in column_names:
-            raise ValueError(f'In valid value of parameter y = {y_column}, valid values are: {column_names}')
-
-        return x_column, y_column
-

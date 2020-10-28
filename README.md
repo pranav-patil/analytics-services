@@ -288,7 +288,11 @@ should be added into the application. Currently only `/data/vgsales.csv` can be 
         <tr>
             <td rowspan=1>SuicideStatistics</td>
             <td>/api/suicide/statistics/</td>
-            <td>Returns all the WHO suicide statistics records from data/who_suicide_statistics.csv</td>
+            <td>Returns all the WHO suicide statistics records from data/who_suicide_statistics.csv, which can be analyzed using dataframe</td>
+        </tr>
+        <tr>
+            <td>/api/suicide/statistics/chart/</td>
+            <td>Returns SVG chart for suicide statistics</td>
         </tr>
         <tr>
             <td rowspan=2>VideoGameSales</td>
@@ -297,19 +301,23 @@ should be added into the application. Currently only `/data/vgsales.csv` can be 
         </tr>
         <tr>
             <td>/api/videogames/sales/chart/</td>
-            <td>Returns SVG chart based on passed chart (type) parameter</td>
+            <td>Returns SVG chart for video game sales</td>
         </tr>
     </tbody>
 </table>
 </div>
  
-##### Video Game Sales - Analytics Services
+##### Analytics Services - Video Game Sales and WHO Suicide Statistics
 
-The Video Game Sales API service supports below query parameters for data manipulation using Pandas.
+The Video Game Sales and WHO Suicide Statistics API services supports below query parameters for data manipulation using Pandas.
 All the below query parameters can be applied together or separately as shown in the below examples.
 
 - Filter: It finds all the records that match the text in the `filter_value` parameter for the data column specified by `filter_column` parameter. 
-- Group: It groups all the records by data column `group` and adds up all the values for the data columns `usa_sales`, `europe_sales`,`japan_sales`, `other_sales` and `global_sales`.
+- Group: It groups all the records by data column `group` and adds up all the values for the sum data columns for corresponding resource. 
+  For video game sales the allowed group by columns are `platform`, `year`, `genre` and `publisher`, while the summed up data columns are 
+  `usa_sales`, `europe_sales`,`japan_sales`, `other_sales` and `global_sales`.
+  For WHO suicide statistics the allowed group by columns are `country`, `year`, `sex` and `age`, while the summed up data columns are
+  `suicides_no` and `population`.
 - Sort: It sorts the specified data column in the `sort` parameter.
 
 [http://localhost:8000/api/videogames/sales/?filter_column=name&filter_value=Call%20of%20Duty&sort=year]()
