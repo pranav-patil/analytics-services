@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_pandas import PandasSimpleView, PandasView, PandasJSONRenderer, PandasSVGRenderer
 
+from analytics_services.settings import MARKET_STACK_ACCESS_KEY
 from records.models import BlogPost
 from .models import VideoGameSales
 from .permissions import UserIsOwnerBlogPost
@@ -19,6 +20,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from rest_framework.response import Response
+import requests
 
 
 class BlogPostListCreateAPIView(ListCreateAPIView):
@@ -285,3 +287,18 @@ class VideoGameSalesView(PandasChartView, PandasView):
         else:
             self.renderer_classes = [PandasJSONRenderer]
             return super().list(request, *args, **kwargs)
+
+
+class StockList(APIView):
+
+    def get(self, request, symbol=None):
+
+        if symbol is None:
+            raise ValueError('Required a valid company stock symbol')
+
+        params = {
+            'access_key': MARKET_STACK_ACCESS_KEY
+        }
+        api_result = requests.get(f'http://api.marketstack.com/v1/tickers/{symbol}/eod', params)
+        response = api_result.json()
+        return Response(response)

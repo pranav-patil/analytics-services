@@ -144,12 +144,17 @@ Below are the instructions to download/setup Python3, PIP, Poetry and to run Dja
 
         $ pip install poetry
 
-* Install all the python packages by reading the `pyproject.toml` file in the project directory. 
-  Subsequently run all the commands with `poetry run` prefix command, in order to run them in poetry's virtual environment. 
-  Run Django's `makemigrations`, `migrate` and `runserver` commands as below to setup and run django rest services.
+* Create a new virtual environment using poetry and install all the python packages by reading the `pyproject.toml` file 
+  in the project directory. Alternatively we could also use the command `pip install -r requirements.txt` to install all the
+  required packages directly into the system, which is not recommended.
 
 
         $ poetry install
+
+* Run the below commands with `poetry run` prefix command, in order to run them in poetry's virtual environment. 
+  Run Django's `makemigrations`, `migrate` and `runserver` commands as below to setup and run django rest services.
+
+
         $ poetry run python manage.py makemigrations
         $ poetry run python manage.py migrate
         $ poetry run python manage.py runserver
@@ -286,7 +291,7 @@ should be added into the application. Currently only `/data/vgsales.csv` can be 
             <td>Returns details of the requested blogpost by blogpost id</td>
         </tr>
         <tr>
-            <td rowspan=1>SuicideStatistics</td>
+            <td rowspan=2>SuicideStatistics</td>
             <td>/api/suicide/statistics/</td>
             <td>Returns all the WHO suicide statistics records from data/who_suicide_statistics.csv, which can be analyzed using dataframe</td>
         </tr>
@@ -302,6 +307,11 @@ should be added into the application. Currently only `/data/vgsales.csv` can be 
         <tr>
             <td>/api/videogames/sales/chart/</td>
             <td>Returns SVG chart for video game sales</td>
+        </tr>
+        <tr>
+            <td rowspan=1>StockList</td>
+            <td>/api/stock/data/[symbol]</td>
+            <td>Returns end of the day stock data for the requested company symbol, using MarketStack API</td>
         </tr>
     </tbody>
 </table>
@@ -323,6 +333,13 @@ All the below query parameters can be applied together or separately as shown in
 [http://localhost:8000/api/videogames/sales/?filter_column=name&filter_value=Call%20of%20Duty&sort=year]()
 
 [http://localhost:8000/api/videogames/sales/?group=genre&filter_column=name&filter_value=Call%20of%20Duty&sort=global_sales]()
+
+[http://localhost:8000/api/suicide/statistics/?group=country&filter_column=sex&filter_value=male&sort=population]()
+
+##### Stock Services - Register MarketStack API
+
+In order to call the `/api/stock/data` service, it is required to [register](https://marketstack.com/signup/free) for [MarketStack API](https://marketstack.com/).
+Go to the [MarketStack Dashboard](https://marketstack.com/dashboard) to copy the API Access Key and replace the value of `MARKET_STACK_ACCESS_KEY` field in `settings.py`.
 
 ### Type of Charts for Analytics
 
